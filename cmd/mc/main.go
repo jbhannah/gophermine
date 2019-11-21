@@ -8,31 +8,45 @@ import (
 	"syscall"
 
 	"github.com/jbhannah/gophermine/internal/pkg/server"
+	log "github.com/sirupsen/logrus"
 )
 
-func main() {
-	println("Starting gophermine")
+func init() {
+	log.SetFormatter(&log.TextFormatter{
+		FullTimestamp:   true,
+		TimestampFormat: "2006-01-02T15:04:05.000000Z-07:00",
+	})
+	log.SetLevel(log.DebugLevel)
+}
 
-	ctx, cancel := context.WithCancel(context.Background())
-	server := server.NewServer(ctx, cancel)
+// DefaultAddr is the default server address
+const DefaultAddr = ":25565"
+
+func main() {
+	log.Debug("Starting gophermine")
+
+	ctx := context.Background()
+	server := server.NewServer(ctx, DefaultAddr)
 
 	sigs := make(chan os.Signal, 1)
 	signal.Notify(sigs, syscall.SIGINT, syscall.SIGTERM)
 	go handleSigs(server, sigs)
 
 	server.Start()
-	println("Started gophermine")
+	log.Debug("Started gophermine")
 
-	<-ctx.Done()
-	println("Stopped gophermine")
+	<-server.Stopped()
+
+	close(sigs)
+	log.Debug("Stopped gophermine")
 }
 
 func handleSigs(server *server.Server, sigs <-chan os.Signal) {
 	sig := <-sigs
 
 	print("\r")
-	println(fmt.Sprintf("Received %s signal", sig))
-	println("Stopping gophermine")
+	log.Debug(fmt.Sprintf("Received %s signal", sig))
+	log.Debug("Stopping gophermine")
 
 	server.Stop()
 }
