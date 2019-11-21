@@ -27,11 +27,7 @@ func NewServer(ctx context.Context, addr string) *Server {
 		ticker:   time.NewTicker(TickDuration),
 	}
 
-	return runner.NewRunner(ctx, server).(*Server)
-}
-
-func (server *Server) WithRunner(runner *runner.Runner) runner.Runnable {
-	server.Runner = runner
+	server.Runner = runner.NewRunner(ctx, server)
 	return server
 }
 

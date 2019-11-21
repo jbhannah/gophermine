@@ -26,11 +26,7 @@ func NewListener(ctx context.Context, addr string) *Listener {
 		Listener: listen,
 	}
 
-	return runner.NewRunner(ctx, listener).(*Listener)
-}
-
-func (listener *Listener) WithRunner(runner *runner.Runner) runner.Runnable {
-	listener.Runner = runner
+	listener.Runner = runner.NewRunner(ctx, listener)
 	return listener
 }
 

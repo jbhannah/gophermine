@@ -10,7 +10,6 @@ type Runnable interface {
 	Cleanup()
 	Run()
 	Setup()
-	WithRunner(*Runner) Runnable
 }
 
 type Runner struct {
@@ -23,12 +22,13 @@ type Runner struct {
 func NewRunner(ctx context.Context, runnable Runnable) Runnable {
 	ctx, cancel := context.WithCancel(ctx)
 
-	return runnable.WithRunner(&Runner{
+	return &Runner{
 		Runnable: runnable,
 		Context:  ctx,
 		stopped:  make(chan struct{}),
 		cancel:   cancel,
 	})
+	}
 }
 
 func (runner *Runner) Setup() {}
