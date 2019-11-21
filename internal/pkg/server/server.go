@@ -4,7 +4,7 @@ import (
 	"context"
 	"time"
 
-	"github.com/jbhannah/gophermine/internal/pkg/mc"
+	"github.com/jbhannah/gophermine/internal/pkg/listener"
 
 	"github.com/jbhannah/gophermine/pkg/runner"
 )
@@ -16,7 +16,7 @@ const TickDuration = 50 * time.Millisecond
 // listeners, and communication between them all.
 type Server struct {
 	*runner.Runner
-	listener *mc.Listener
+	listener *listener.Listener
 	ticker   *time.Ticker
 }
 
@@ -27,7 +27,7 @@ func NewServer(ctx context.Context, addr string) *Server {
 	}
 
 	server.Runner = runner.NewRunner(ctx, server)
-	server.listener = mc.NewListener(server.Context, addr)
+	server.listener = listener.NewListener(server.Context, addr)
 	return server
 }
 

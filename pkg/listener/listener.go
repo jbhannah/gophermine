@@ -1,8 +1,7 @@
-package mc
+package listener
 
 import (
 	"context"
-	"io"
 	"net"
 	"os"
 
@@ -10,15 +9,21 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
+// Handler defines the interface for handlers of incoming network connections.
+type Handler interface {
+	HandleConn(net.Conn)
+}
+
 // Listener performs non-blocking handling of incoming network connections.
 type Listener struct {
+	Handler
 	net.Listener
 	*runner.Runner
 	restart chan struct{}
 }
 
 // NewListener creates a new listener at the given address.
-func NewListener(ctx context.Context, addr string) *Listener {
+func NewListener(ctx context.Context, handler Handler, addr string) *Listener {
 	listen, err := net.Listen("tcp", addr)
 	if err != nil {
 		log.Debug("Could not listen on", addr)
@@ -26,6 +31,7 @@ func NewListener(ctx context.Context, addr string) *Listener {
 	}
 
 	listener := &Listener{
+		Handler:  handler,
 		Listener: listen,
 		restart:  make(chan struct{}),
 	}
@@ -36,12 +42,10 @@ func NewListener(ctx context.Context, addr string) *Listener {
 
 // Setup starts the connection listening loop.
 func (listener *Listener) Setup() {
-	log.Debugf("Listening on %s", listener.Addr())
 	go listener.listen()
 }
 
-// Run handles incoming connections and restarts the listener if it stops
-// unexpectedly.
+// Run restarts the listener if it stops unexpectedly.
 func (listener *Listener) Run() {
 	for {
 		select {
@@ -62,7 +66,7 @@ func (listener *Listener) Cleanup() {
 
 func (listener *Listener) listen() {
 	defer close(listener.restart)
-	log.Debug("Listening")
+	log.Debugf("Listening on %s", listener.Addr())
 
 	for {
 		log.Debug("Waiting for connection")
@@ -72,8 +76,8 @@ func (listener *Listener) listen() {
 			break
 		}
 
-		log.Debugf("Accepted connection from %s", conn.RemoteAddr())
-		go io.Copy(conn, conn)
+		log.Debugf("Got connection from %s", conn.RemoteAddr())
+		go listener.HandleConn(conn)
 	}
 
 	log.Debug("Listener stopped")
