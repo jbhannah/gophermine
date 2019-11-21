@@ -37,7 +37,15 @@ func (server *Server) Setup() {
 }
 
 // Run handles incoming commands to the server.
-func (server *Server) Run() {}
+func (server *Server) Run() {
+	for {
+		select {
+		case <-server.Done():
+			return
+		case <-server.ticker.C:
+		}
+	}
+}
 
 // Cleanup stops the server's ticker and network listeners.
 func (server *Server) Cleanup() {

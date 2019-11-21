@@ -14,7 +14,7 @@ import (
 type Listener struct {
 	net.Listener
 	*runner.Runner
-	listening chan struct{}
+	restart chan struct{}
 }
 
 // NewListener creates a new listener at the given address.
@@ -26,8 +26,8 @@ func NewListener(ctx context.Context, addr string) *Listener {
 	}
 
 	listener := &Listener{
-		Listener:  listen,
-		listening: make(chan struct{}),
+		Listener: listen,
+		restart:  make(chan struct{}),
 	}
 
 	listener.Runner = runner.NewRunner(ctx, listener)
@@ -43,12 +43,14 @@ func (listener *Listener) Setup() {
 // Run handles incoming connections and restarts the listener if it stops
 // unexpectedly.
 func (listener *Listener) Run() {
-	select {
-	case <-listener.listening:
-		log.Warn("Restarting listener")
-		go listener.listen()
-	default:
-		return
+	for {
+		select {
+		case <-listener.Done():
+			return
+		case <-listener.restart:
+			log.Warn("Restarting listener")
+			go listener.listen()
+		}
 	}
 }
 
@@ -59,7 +61,7 @@ func (listener *Listener) Cleanup() {
 }
 
 func (listener *Listener) listen() {
-	defer close(listener.listening)
+	defer close(listener.restart)
 	log.Debug("Listening")
 
 	for {

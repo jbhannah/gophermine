@@ -59,16 +59,7 @@ func (runner *Runner) Stopped() <-chan struct{} {
 func (runner *Runner) run() {
 	defer runner.cleanup()
 	log.Debug("Running")
-
-	for {
-		select {
-		case <-runner.Done():
-			log.Debug("Stopping")
-			return
-		default:
-			runner.Run()
-		}
-	}
+	runner.Run()
 }
 
 func (runner *Runner) cleanup() {
