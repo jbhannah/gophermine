@@ -14,6 +14,7 @@ import (
 type Listener struct {
 	net.Listener
 	*runner.Runner
+	listening chan struct{}
 }
 
 // NewListener creates a new listener at the given address.
@@ -25,7 +26,8 @@ func NewListener(ctx context.Context, addr string) *Listener {
 	}
 
 	listener := &Listener{
-		Listener: listen,
+		Listener:  listen,
+		listening: make(chan struct{}),
 	}
 
 	listener.Runner = runner.NewRunner(ctx, listener)
@@ -34,8 +36,20 @@ func NewListener(ctx context.Context, addr string) *Listener {
 
 // Setup starts the connection listening loop.
 func (listener *Listener) Setup() {
-	log.Debug("Listening")
+	log.Debugf("Listening on %s", listener.Addr())
 	go listener.listen()
+}
+
+// Run handles incoming connections and restarts the listener if it stops
+// unexpectedly.
+func (listener *Listener) Run() {
+	select {
+	case <-listener.listening:
+		log.Warn("Restarting listener")
+		go listener.listen()
+	default:
+		return
+	}
 }
 
 // Cleanup closes the listener.
@@ -45,13 +59,20 @@ func (listener *Listener) Cleanup() {
 }
 
 func (listener *Listener) listen() {
+	defer close(listener.listening)
+	log.Debug("Listening")
+
 	for {
+		log.Debug("Waiting for connection")
 		conn, err := listener.Accept()
 		if err != nil {
-			log.Debug("Error:", err)
-			return
+			log.Errorf("Error accepting connection: %v", err)
+			break
 		}
 
+		log.Debugf("Accepted connection from %s", conn.RemoteAddr())
 		go io.Copy(conn, conn)
 	}
+
+	log.Debug("Listener stopped")
 }
