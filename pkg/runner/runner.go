@@ -36,16 +36,10 @@ func NewRunner(ctx context.Context, runnable Runnable) *Runner {
 // Start runs the setup steps for the Runnable and starts the looping
 // goroutine.
 func (runner *Runner) Start() {
-	runner.Runnable.Setup()
+	runner.Setup()
 	log.Debug("Starting")
 	go runner.run()
 }
-
-// Setup is an empty no-op for Runnables with no setup steps.
-func (runner *Runner) Setup() {}
-
-// Run is an empty no-op for Runnables with no run steps.
-func (runner *Runner) Run() {}
 
 // Stop stops the looping goroutine and returns a channel that closes when the
 // Runner has come to a complete stop.
@@ -54,9 +48,6 @@ func (runner *Runner) Stop() <-chan struct{} {
 	log.Debug("Stop received")
 	return runner.stopped
 }
-
-// Cleanup is an empty no-op for Runnables with no cleanup steps.
-func (runner *Runner) Cleanup() {}
 
 // Stopped returns a channel that closes when the Runner has come to a complete
 // stop, to allow waiting for a Runnable to stop in a separate goroutine from

@@ -36,6 +36,9 @@ func (server *Server) Setup() {
 	server.listener.Start()
 }
 
+// Run handles incoming commands to the server.
+func (server *Server) Run() {}
+
 // Cleanup stops the server's ticker and network listeners.
 func (server *Server) Cleanup() {
 	server.ticker.Stop()
