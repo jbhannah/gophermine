@@ -25,13 +25,13 @@ const DefaultAddr = ":25565"
 func main() {
 	log.Debug("Starting gophermine")
 
-	ctx := context.Background()
-	server := server.NewServer(ctx, DefaultAddr)
+	ctx, cancel := context.WithCancel(context.Background())
 
 	sigs := make(chan os.Signal, 1)
 	signal.Notify(sigs, syscall.SIGINT, syscall.SIGTERM)
-	go handleSigs(server, sigs)
+	go handleSigs(cancel, sigs)
 
+	server := server.NewServer(ctx, DefaultAddr)
 	server.Start()
 	log.Debug("Started gophermine")
 
@@ -41,12 +41,12 @@ func main() {
 	log.Debug("Stopped gophermine")
 }
 
-func handleSigs(server *server.Server, sigs <-chan os.Signal) {
+func handleSigs(cancel context.CancelFunc, sigs <-chan os.Signal) {
 	sig := <-sigs
 
 	print("\r")
 	log.Debug(fmt.Sprintf("Received %s signal", sig))
 	log.Debug("Stopping gophermine")
 
-	server.Stop()
+	cancel()
 }

@@ -23,11 +23,11 @@ type Server struct {
 // NewServer instantiates a new server.
 func NewServer(ctx context.Context, addr string) *Server {
 	server := &Server{
-		listener: mc.NewListener(ctx, addr),
-		ticker:   time.NewTicker(TickDuration),
+		ticker: time.NewTicker(TickDuration),
 	}
 
 	server.Runner = runner.NewRunner(ctx, server)
+	server.listener = mc.NewListener(server.Context, addr)
 	return server
 }
 
@@ -42,5 +42,5 @@ func (server *Server) Run() {}
 // Cleanup stops the server's ticker and network listeners.
 func (server *Server) Cleanup() {
 	server.ticker.Stop()
-	<-server.listener.Stop()
+	<-server.listener.Stopped()
 }
