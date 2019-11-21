@@ -10,11 +10,13 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
+// Listener performs non-blocking handling of incoming network connections.
 type Listener struct {
 	net.Listener
 	*runner.Runner
 }
 
+// NewListener creates a new listener at the given address.
 func NewListener(ctx context.Context, addr string) *Listener {
 	listen, err := net.Listen("tcp", addr)
 	if err != nil {
@@ -30,11 +32,13 @@ func NewListener(ctx context.Context, addr string) *Listener {
 	return listener
 }
 
+// Setup starts the connection listening loop.
 func (listener *Listener) Setup() {
 	log.Debug("Listening")
 	go listener.listen()
 }
 
+// Cleanup closes the listener.
 func (listener *Listener) Cleanup() {
 	log.Debug("Closing listener")
 	listener.Close()

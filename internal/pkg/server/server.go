@@ -31,10 +31,12 @@ func NewServer(ctx context.Context, addr string) *Server {
 	return server
 }
 
+// Setup starts the server's network listeners.
 func (server *Server) Setup() {
 	server.listener.Start()
 }
 
+// Cleanup stops the server's ticker and network listeners.
 func (server *Server) Cleanup() {
 	server.ticker.Stop()
 	<-server.listener.Stop()
