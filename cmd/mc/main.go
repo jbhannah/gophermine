@@ -9,6 +9,7 @@ import (
 
 	"github.com/jbhannah/gophermine/internal/pkg/server"
 	log "github.com/sirupsen/logrus"
+	"github.com/urfave/cli/v2"
 )
 
 func init() {
@@ -26,6 +27,19 @@ const DefaultMCAddr = ":25565"
 const DefaultRCONAddr = ":25566"
 
 func main() {
+	app := &cli.App{
+		Name:    "Gophermine",
+		Usage:   "A (someday) Minecraft™: Java Edition compatible server written in Go.",
+		Version: "0.0.1",
+		Action:  start,
+	}
+
+	if err := app.Run(os.Args); err != nil {
+		log.Fatal(err)
+	}
+}
+
+func start(c *cli.Context) error {
 	log.Info("Starting Gophermine")
 
 	ctx, cancel := context.WithCancel(context.Background())
@@ -38,7 +52,7 @@ func main() {
 
 	server, err := server.NewServer(ctx, DefaultMCAddr, DefaultRCONAddr)
 	if err != nil {
-		log.Fatal(err)
+		return err
 	}
 
 	server.Start()
@@ -46,6 +60,8 @@ func main() {
 
 	<-server.Stopped()
 	log.Info("Stopped Gophermine")
+
+	return nil
 }
 
 func handleSigs(cancel context.CancelFunc, sigs <-chan os.Signal) {
