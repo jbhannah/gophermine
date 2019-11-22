@@ -19,7 +19,10 @@ func init() {
 	log.SetLevel(log.DebugLevel)
 }
 
-// DefaultRCONAddr is the default server address
+// DefaultMCAddr is the default Minecraft server address
+const DefaultMCAddr = ":25565"
+
+// DefaultRCONAddr is the default RCON server address
 const DefaultRCONAddr = ":25566"
 
 func main() {
@@ -29,10 +32,11 @@ func main() {
 
 	sigs := make(chan os.Signal, 1)
 	defer close(sigs)
+
 	signal.Notify(sigs, syscall.SIGINT, syscall.SIGTERM)
 	go handleSigs(cancel, sigs)
 
-	server, err := server.NewServer(ctx, DefaultRCONAddr)
+	server, err := server.NewServer(ctx, DefaultMCAddr, DefaultRCONAddr)
 	if err != nil {
 		log.Fatal(err)
 	}

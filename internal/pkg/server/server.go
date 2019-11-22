@@ -14,23 +14,30 @@ const TickDuration = 50 * time.Millisecond
 // listeners, and communication between them all.
 type Server struct {
 	*runner.Runner
+	mc     *MCServer
 	rcon   *RCONServer
 	ticker *time.Ticker
 }
 
 // NewServer instantiates a new server.
-func NewServer(ctx context.Context, addr string) (*Server, error) {
+func NewServer(ctx context.Context, mcAddr string, rconAddr string) (*Server, error) {
 	server := &Server{
 		ticker: time.NewTicker(TickDuration),
 	}
 
 	server.Runner = runner.NewRunner(ctx, server)
 
-	rcon, err := NewRCONServer(server.Context, addr)
+	mc, err := NewMCServer(server.Context, mcAddr)
 	if err != nil {
 		return nil, err
 	}
 
+	rcon, err := NewRCONServer(server.Context, rconAddr)
+	if err != nil {
+		return nil, err
+	}
+
+	server.mc = mc
 	server.rcon = rcon
 	return server, nil
 }
@@ -42,7 +49,8 @@ func (server *Server) Name() string {
 
 // Setup starts the server's network listeners.
 func (server *Server) Setup() {
-	server.rcon.Start()
+	go server.mc.Start()
+	go server.rcon.Start()
 }
 
 // Run handles incoming commands to the server.
