@@ -19,8 +19,8 @@ func init() {
 	log.SetLevel(log.DebugLevel)
 }
 
-// DefaultAddr is the default server address
-const DefaultAddr = ":25565"
+// DefaultRCONAddr is the default server address
+const DefaultRCONAddr = ":25566"
 
 func main() {
 	log.Debug("Starting gophermine")
@@ -31,7 +31,7 @@ func main() {
 	signal.Notify(sigs, syscall.SIGINT, syscall.SIGTERM)
 	go handleSigs(cancel, sigs)
 
-	server := server.NewServer(ctx, DefaultAddr)
+	server := server.NewServer(ctx, DefaultRCONAddr)
 	server.Start()
 	log.Debug("Started gophermine")
 

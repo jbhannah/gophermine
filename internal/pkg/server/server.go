@@ -4,8 +4,6 @@ import (
 	"context"
 	"time"
 
-	"github.com/jbhannah/gophermine/internal/pkg/listener"
-
 	"github.com/jbhannah/gophermine/pkg/runner"
 )
 
@@ -16,8 +14,8 @@ const TickDuration = 50 * time.Millisecond
 // listeners, and communication between them all.
 type Server struct {
 	*runner.Runner
-	listener *listener.Listener
-	ticker   *time.Ticker
+	rcon   *RCONServer
+	ticker *time.Ticker
 }
 
 // NewServer instantiates a new server.
@@ -27,13 +25,13 @@ func NewServer(ctx context.Context, addr string) *Server {
 	}
 
 	server.Runner = runner.NewRunner(ctx, server)
-	server.listener = listener.NewListener(server.Context, addr)
+	server.rcon = NewRCONServer(server.Context, addr)
 	return server
 }
 
 // Setup starts the server's network listeners.
 func (server *Server) Setup() {
-	server.listener.Start()
+	server.rcon.Start()
 }
 
 // Run handles incoming commands to the server.
@@ -50,5 +48,5 @@ func (server *Server) Run() {
 // Cleanup stops the server's ticker and network listeners.
 func (server *Server) Cleanup() {
 	server.ticker.Stop()
-	<-server.listener.Stopped()
+	<-server.rcon.Stopped()
 }
