@@ -3,7 +3,6 @@ package listener
 import (
 	"context"
 	"net"
-	"os"
 
 	"github.com/jbhannah/gophermine/pkg/runner"
 	log "github.com/sirupsen/logrus"
@@ -12,6 +11,7 @@ import (
 // Handler defines the interface for handlers of incoming network connections.
 type Handler interface {
 	HandleConn(net.Conn)
+	Name() string
 }
 
 // Listener performs non-blocking handling of incoming network connections.
@@ -26,8 +26,7 @@ type Listener struct {
 func NewListener(ctx context.Context, handler Handler, addr string) *Listener {
 	listen, err := net.Listen("tcp", addr)
 	if err != nil {
-		log.Debug("Could not listen on", addr)
-		os.Exit(1)
+		log.Fatalf("Could not listen on %s for %s", addr, handler.Name())
 	}
 
 	listener := &Listener{
@@ -52,7 +51,7 @@ func (listener *Listener) Run() {
 		case <-listener.Done():
 			return
 		case <-listener.restart:
-			log.Warn("Restarting listener")
+			log.Warnf("Restarting listener for %s", listener.Name())
 			go listener.listen()
 		}
 	}
@@ -60,25 +59,28 @@ func (listener *Listener) Run() {
 
 // Cleanup closes the listener.
 func (listener *Listener) Cleanup() {
-	log.Debug("Closing listener")
 	listener.Close()
+}
+
+func (listener *Listener) handle(conn net.Conn) {
+	defer log.Debugf("Closed connection for %s from %s", listener.Name(), conn.RemoteAddr())
+	listener.HandleConn(conn)
 }
 
 func (listener *Listener) listen() {
 	defer close(listener.restart)
-	log.Debugf("Listening on %s", listener.Addr())
+	log.Infof("Listening on %s for %s", listener.Addr(), listener.Name())
 
 	for {
-		log.Debug("Waiting for connection")
 		conn, err := listener.Accept()
 		if err != nil {
-			log.Errorf("Error accepting connection: %v", err)
+			log.Errorf("Error accepting connection for %s: %v", listener.Name(), err)
 			break
 		}
 
-		log.Debugf("Got connection from %s", conn.RemoteAddr())
-		go listener.HandleConn(conn)
+		log.Infof("Accepted connection for %s from %s", listener.Name(), conn.RemoteAddr())
+		go listener.handle(conn)
 	}
 
-	log.Debug("Listener stopped")
+	log.Debugf("Stopped listening on %s for %s", listener.Addr(), listener.Name())
 }

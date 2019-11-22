@@ -22,13 +22,14 @@ func NewRCONServer(ctx context.Context, addr string) *RCONServer {
 	return rcon
 }
 
+// Name returns the name of the RCON server.
+func (rcon *RCONServer) Name() string {
+	return "RCON"
+}
+
 // HandleConn handles incoming RCON connections.
 func (rcon *RCONServer) HandleConn(conn net.Conn) {
-	log.Debugf("Accepted connection from %s", conn.RemoteAddr())
-
 	if _, err := io.Copy(conn, conn); err != nil {
 		log.Errorf("Error in connection: %s", err)
 	}
-
-	log.Debugf("Closed connection from %s", conn.RemoteAddr())
 }

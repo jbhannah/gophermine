@@ -29,6 +29,11 @@ func NewServer(ctx context.Context, addr string) *Server {
 	return server
 }
 
+// Name returns the name of the server.
+func (server *Server) Name() string {
+	return "Gophermine"
+}
+
 // Setup starts the server's network listeners.
 func (server *Server) Setup() {
 	server.rcon.Start()

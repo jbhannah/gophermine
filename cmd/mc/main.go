@@ -23,7 +23,7 @@ func init() {
 const DefaultRCONAddr = ":25566"
 
 func main() {
-	log.Debug("Starting gophermine")
+	log.Info("Starting Gophermine")
 
 	ctx, cancel := context.WithCancel(context.Background())
 
@@ -33,20 +33,20 @@ func main() {
 
 	server := server.NewServer(ctx, DefaultRCONAddr)
 	server.Start()
-	log.Debug("Started gophermine")
+	log.Info("Started Gophermine")
 
 	<-server.Stopped()
 
 	close(sigs)
-	log.Debug("Stopped gophermine")
+	log.Info("Stopped Gophermine")
 }
 
 func handleSigs(cancel context.CancelFunc, sigs <-chan os.Signal) {
 	sig := <-sigs
 
 	print("\r")
-	log.Debug(fmt.Sprintf("Received %s signal", sig))
-	log.Debug("Stopping gophermine")
+	log.Warn(fmt.Sprintf("Received %s signal", sig))
+	log.Warn("Stopping Gophermine")
 
 	cancel()
 }
