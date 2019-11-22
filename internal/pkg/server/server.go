@@ -19,14 +19,20 @@ type Server struct {
 }
 
 // NewServer instantiates a new server.
-func NewServer(ctx context.Context, addr string) *Server {
+func NewServer(ctx context.Context, addr string) (*Server, error) {
 	server := &Server{
 		ticker: time.NewTicker(TickDuration),
 	}
 
 	server.Runner = runner.NewRunner(ctx, server)
-	server.rcon = NewRCONServer(server.Context, addr)
-	return server
+
+	rcon, err := NewRCONServer(server.Context, addr)
+	if err != nil {
+		return nil, err
+	}
+
+	server.rcon = rcon
+	return server, nil
 }
 
 // Name returns the name of the server.

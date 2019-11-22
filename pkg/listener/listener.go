@@ -2,6 +2,7 @@ package listener
 
 import (
 	"context"
+	"fmt"
 	"net"
 
 	"github.com/jbhannah/gophermine/pkg/runner"
@@ -23,10 +24,10 @@ type Listener struct {
 }
 
 // NewListener creates a new listener at the given address.
-func NewListener(ctx context.Context, handler Handler, addr string) *Listener {
+func NewListener(ctx context.Context, handler Handler, addr string) (*Listener, error) {
 	listen, err := net.Listen("tcp", addr)
 	if err != nil {
-		log.Fatalf("Could not listen on %s for %s", addr, handler.Name())
+		return nil, fmt.Errorf("Could not listen on %s for %s: %v", addr, handler.Name(), err)
 	}
 
 	listener := &Listener{
@@ -36,7 +37,7 @@ func NewListener(ctx context.Context, handler Handler, addr string) *Listener {
 	}
 
 	listener.Runner = runner.NewRunner(ctx, listener)
-	return listener
+	return listener, nil
 }
 
 // Setup starts the connection listening loop.

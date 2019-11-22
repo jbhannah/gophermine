@@ -15,11 +15,16 @@ type RCONServer struct {
 }
 
 // NewRCONServer returns a new RCONServer.
-func NewRCONServer(ctx context.Context, addr string) *RCONServer {
+func NewRCONServer(ctx context.Context, addr string) (*RCONServer, error) {
 	rcon := &RCONServer{}
-	rcon.Listener = listener.NewListener(ctx, rcon, addr)
 
-	return rcon
+	listener, err := listener.NewListener(ctx, rcon, addr)
+	if err != nil {
+		return nil, err
+	}
+
+	rcon.Listener = listener
+	return rcon, nil
 }
 
 // Name returns the name of the RCON server.

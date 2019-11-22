@@ -28,25 +28,27 @@ func main() {
 	ctx, cancel := context.WithCancel(context.Background())
 
 	sigs := make(chan os.Signal, 1)
+	defer close(sigs)
 	signal.Notify(sigs, syscall.SIGINT, syscall.SIGTERM)
 	go handleSigs(cancel, sigs)
 
-	server := server.NewServer(ctx, DefaultRCONAddr)
+	server, err := server.NewServer(ctx, DefaultRCONAddr)
+	if err != nil {
+		log.Fatal(err)
+	}
+
 	server.Start()
 	log.Info("Started Gophermine")
 
 	<-server.Stopped()
-
-	close(sigs)
 	log.Info("Stopped Gophermine")
 }
 
 func handleSigs(cancel context.CancelFunc, sigs <-chan os.Signal) {
+	defer cancel()
 	sig := <-sigs
 
 	print("\r")
 	log.Warn(fmt.Sprintf("Received %s signal", sig))
 	log.Warn("Stopping Gophermine")
-
-	cancel()
 }
