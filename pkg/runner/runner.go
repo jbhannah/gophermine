@@ -37,16 +37,18 @@ func NewRunner(ctx context.Context, runnable Runnable) *Runner {
 // Start runs the setup steps for the Runnable and starts the looping
 // goroutine.
 func (runner *Runner) Start() {
+	defer log.Debugf("Started loop for %s", runner.Name())
+
 	log.Debugf("Starting loop for %s", runner.Name())
 	runner.Setup()
 	go runner.run()
-	log.Debugf("Started loop for %s", runner.Name())
 }
 
 // Stop stops the looping goroutine and returns a channel that closes when the
 // Runner has come to a complete stop.
 func (runner *Runner) Stop() <-chan struct{} {
 	defer runner.cancel()
+
 	log.Debugf("Stop requested for %s", runner.Name())
 	return runner.stopped
 }
@@ -59,13 +61,15 @@ func (runner *Runner) Stopped() <-chan struct{} {
 }
 
 func (runner *Runner) run() {
+	defer log.Debugf("Stopping loop for %s", runner.Name())
 	defer runner.cleanup()
+
 	runner.Run()
-	log.Debugf("Stopping loop for %s", runner.Name())
 }
 
 func (runner *Runner) cleanup() {
+	defer close(runner.stopped)
+	defer log.Debugf("Stopped loop for %s", runner.Name())
+
 	runner.Cleanup()
-	log.Debugf("Stopped loop for %s", runner.Name())
-	close(runner.stopped)
 }
