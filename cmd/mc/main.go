@@ -7,6 +7,8 @@ import (
 	"os/signal"
 	"syscall"
 
+	"github.com/jbhannah/gophermine/pkg/mc"
+
 	"github.com/jbhannah/gophermine/internal/pkg/server"
 	log "github.com/sirupsen/logrus"
 	"github.com/urfave/cli/v2"
@@ -19,12 +21,6 @@ func init() {
 	})
 	log.SetLevel(log.DebugLevel)
 }
-
-// DefaultMCAddr is the default Minecraft server address
-const DefaultMCAddr = ":25565"
-
-// DefaultRCONAddr is the default RCON server address
-const DefaultRCONAddr = ":25566"
 
 func main() {
 	app := &cli.App{
@@ -42,6 +38,11 @@ func main() {
 func start(c *cli.Context) error {
 	log.Info("Starting Gophermine")
 
+	config, err := mc.NewServerConfig()
+	if err != nil {
+		return err
+	}
+
 	ctx, cancel := context.WithCancel(context.Background())
 
 	sigs := make(chan os.Signal, 1)
@@ -50,7 +51,7 @@ func start(c *cli.Context) error {
 	signal.Notify(sigs, syscall.SIGINT, syscall.SIGTERM)
 	go handleSigs(cancel, sigs)
 
-	server, err := server.NewServer(ctx, DefaultMCAddr, DefaultRCONAddr)
+	server, err := server.NewServer(ctx, config.ServerAddr(), config.RCONAddr())
 	if err != nil {
 		return err
 	}

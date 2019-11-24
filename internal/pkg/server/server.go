@@ -32,13 +32,17 @@ func NewServer(ctx context.Context, mcAddr string, rconAddr string) (*Server, er
 		return nil, err
 	}
 
-	rcon, err := NewRCONServer(server.Context, rconAddr)
-	if err != nil {
-		return nil, err
+	server.mc = mc
+
+	if rconAddr != "" {
+		rcon, err := NewRCONServer(server.Context, rconAddr)
+		if err != nil {
+			return nil, err
+		}
+
+		server.rcon = rcon
 	}
 
-	server.mc = mc
-	server.rcon = rcon
 	return server, nil
 }
 
@@ -50,7 +54,10 @@ func (server *Server) Name() string {
 // Setup starts the server's network listeners.
 func (server *Server) Setup() {
 	go server.mc.Start()
-	go server.rcon.Start()
+
+	if server.rcon != nil {
+		go server.rcon.Start()
+	}
 }
 
 // Run handles incoming commands to the server.
@@ -67,5 +74,8 @@ func (server *Server) Run() {
 // Cleanup stops the server's ticker and network listeners.
 func (server *Server) Cleanup() {
 	server.ticker.Stop()
-	<-server.rcon.Stopped()
+
+	if server.rcon != nil {
+		<-server.rcon.Stopped()
+	}
 }
