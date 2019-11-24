@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"net"
+	"sync"
 
 	"github.com/jbhannah/gophermine/pkg/runner"
 	log "github.com/sirupsen/logrus"
@@ -20,7 +21,8 @@ type Listener struct {
 	Handler
 	net.Listener
 	*runner.Runner
-	restart chan struct{}
+	stopped chan struct{}
+	wg      *sync.WaitGroup
 }
 
 // NewListener creates a new listener at the given address.
@@ -33,7 +35,8 @@ func NewListener(ctx context.Context, handler Handler, addr string) (*Listener, 
 	listener := &Listener{
 		Handler:  handler,
 		Listener: listen,
-		restart:  make(chan struct{}),
+		stopped:  make(chan struct{}),
+		wg:       &sync.WaitGroup{},
 	}
 
 	listener.Runner = runner.NewRunner(ctx, listener)
@@ -42,6 +45,7 @@ func NewListener(ctx context.Context, handler Handler, addr string) (*Listener, 
 
 // Setup starts the connection listening loop.
 func (listener *Listener) Setup() {
+	defer log.Infof("Listening on %s for %s", listener.Addr(), listener.Name())
 	go listener.listen()
 }
 
@@ -51,7 +55,7 @@ func (listener *Listener) Run() {
 		select {
 		case <-listener.Done():
 			return
-		case <-listener.restart:
+		case <-listener.stopped:
 			log.Warnf("Restarting listener for %s", listener.Name())
 			go listener.listen()
 		}
@@ -60,28 +64,35 @@ func (listener *Listener) Run() {
 
 // Cleanup closes the listener.
 func (listener *Listener) Cleanup() {
+	defer log.Debugf("Stopped listening on %s for %s", listener.Addr(), listener.Name())
+	log.Debugf("Stopping listener for %s", listener.Name())
+
 	listener.Close()
+	<-listener.stopped
+	listener.wg.Wait()
 }
 
 func (listener *Listener) handle(conn net.Conn) {
 	defer log.Debugf("Closed connection for %s from %s", listener.Name(), conn.RemoteAddr())
+	defer listener.wg.Done()
+
+	listener.wg.Add(1)
 	listener.HandleConn(conn)
 }
 
 func (listener *Listener) listen() {
-	defer close(listener.restart)
-	log.Infof("Listening on %s for %s", listener.Addr(), listener.Name())
+	defer close(listener.stopped)
 
 	for {
 		conn, err := listener.Accept()
 		if err != nil {
 			log.Errorf("Error accepting connection for %s: %v", listener.Name(), err)
-			break
+			return
 		}
+
+		defer conn.Close()
 
 		log.Infof("Accepted connection for %s from %s", listener.Name(), conn.RemoteAddr())
 		go listener.handle(conn)
 	}
-
-	log.Debugf("Stopped listening on %s for %s", listener.Addr(), listener.Name())
 }
