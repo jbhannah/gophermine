@@ -2,6 +2,7 @@ package server
 
 import (
 	"context"
+	"sync"
 	"time"
 
 	"github.com/jbhannah/gophermine/pkg/runner"
@@ -75,7 +76,22 @@ func (server *Server) Run() {
 func (server *Server) Cleanup() {
 	server.ticker.Stop()
 
+	wg := &sync.WaitGroup{}
+	wg.Add(1)
+
+	go func(wg *sync.WaitGroup) {
+		defer wg.Done()
+		<-server.mc.Stopped()
+	}(wg)
+
 	if server.rcon != nil {
-		<-server.rcon.Stopped()
+		wg.Add(1)
+
+		go func(wg *sync.WaitGroup) {
+			defer wg.Done()
+			<-server.rcon.Stopped()
+		}(wg)
 	}
+
+	wg.Wait()
 }
