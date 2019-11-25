@@ -78,7 +78,7 @@ func main() {
 func start() error {
 	log.Info("Starting Gophermine")
 
-	config, err := mc.NewServerConfig()
+	config, err := mc.NewConfig()
 	if err != nil {
 		return err
 	}
