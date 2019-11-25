@@ -6,6 +6,14 @@ import (
 	"github.com/spf13/viper"
 )
 
+// Configuration default values
+const (
+	EnableRCON = false
+	ServerIP   = ""
+	ServerPort = 25565
+	RCONPort   = 25575
+)
+
 // Config is the vanilla Minecraft server configuration, defined by default in
 // a server.properties file in the current directory.
 type Config struct {
@@ -26,11 +34,11 @@ func NewServerConfig() (*Config, error) {
 	viper.AddConfigPath("./configs")
 	viper.AddConfigPath(".")
 
-	viper.SetDefault("enable-rcon", false)
-	viper.SetDefault("server-ip", "")
-	viper.SetDefault("server-port", 25565)
+	viper.SetDefault("enable-rcon", EnableRCON)
+	viper.SetDefault("server-ip", ServerIP)
+	viper.SetDefault("server-port", ServerPort)
 	viper.SetDefault("rcon.password", "")
-	viper.SetDefault("rcon.port", 25575)
+	viper.SetDefault("rcon.port", RCONPort)
 
 	if err := viper.ReadInConfig(); err != nil {
 		if _, ok := err.(viper.ConfigFileNotFoundError); !ok {
