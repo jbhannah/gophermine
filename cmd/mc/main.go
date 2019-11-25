@@ -78,6 +78,10 @@ func main() {
 func start() error {
 	log.Info("Starting Gophermine")
 
+	if err := mc.CheckEULA(); err != nil {
+		return err
+	}
+
 	config, err := mc.NewConfig()
 	if err != nil {
 		return err
