@@ -61,8 +61,8 @@ func (runner *Runner) Stopped() <-chan struct{} {
 }
 
 func (runner *Runner) run() {
-	defer log.Debugf("Stopping loop for %s", runner.Name())
 	defer runner.cleanup()
+	defer log.Debugf("Stopping loop for %s", runner.Name())
 
 	runner.Run()
 }
