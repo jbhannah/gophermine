@@ -30,14 +30,14 @@ func NewServer(ctx context.Context) (*Server, error) {
 
 	server.Runner = runner.NewRunner(ctx, server)
 
-	mcServer, err := NewMCServer(server.Context, mc.Config().ServerAddr())
+	mcServer, err := NewMCServer(server.Context, mc.Properties().ServerAddr())
 	if err != nil {
 		return nil, err
 	}
 
 	server.mc = mcServer
 
-	rconAddr := mc.Config().RCONAddr()
+	rconAddr := mc.Properties().RCONAddr()
 	if rconAddr != "" {
 		rcon, err := NewRCONServer(server.Context, rconAddr)
 		if err != nil {

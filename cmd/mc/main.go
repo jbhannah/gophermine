@@ -44,7 +44,7 @@ func init() {
 	flag.BoolVarP(&version, "version", "v", false, "print the version")
 
 	flag.IntP("port", "p", mc.ServerPort, "port to listen on for Minecraft client connections")
-	if err := mc.Config().BindPFlag("server-port", flag.Lookup("port")); err != nil {
+	if err := mc.Properties().BindPFlag("server-port", flag.Lookup("port")); err != nil {
 		log.Fatal(err)
 	}
 
@@ -83,7 +83,7 @@ func start() error {
 		return err
 	}
 
-	if err := mc.LoadConfig(); err != nil {
+	if err := mc.LoadProperties(); err != nil {
 		return err
 	}
 	ctx, cancel := context.WithCancel(context.Background())
