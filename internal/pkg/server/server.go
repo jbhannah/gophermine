@@ -5,6 +5,8 @@ import (
 	"sync"
 	"time"
 
+	"github.com/jbhannah/gophermine/pkg/mc"
+
 	"github.com/jbhannah/gophermine/pkg/runner"
 )
 
@@ -21,20 +23,21 @@ type Server struct {
 }
 
 // NewServer instantiates a new server.
-func NewServer(ctx context.Context, mcAddr string, rconAddr string) (*Server, error) {
+func NewServer(ctx context.Context) (*Server, error) {
 	server := &Server{
 		ticker: time.NewTicker(TickDuration),
 	}
 
 	server.Runner = runner.NewRunner(ctx, server)
 
-	mc, err := NewMCServer(server.Context, mcAddr)
+	mcServer, err := NewMCServer(server.Context, mc.Config().ServerAddr())
 	if err != nil {
 		return nil, err
 	}
 
-	server.mc = mc
+	server.mc = mcServer
 
+	rconAddr := mc.Config().RCONAddr()
 	if rconAddr != "" {
 		rcon, err := NewRCONServer(server.Context, rconAddr)
 		if err != nil {

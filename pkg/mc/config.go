@@ -14,9 +14,9 @@ const (
 	RCONPort   = 25575
 )
 
-// Config is the vanilla Minecraft server configuration, defined by default in
-// a server.properties file in the current directory.
-type Config struct {
+var conf *config
+
+type config struct {
 	*viper.Viper
 	EnableRCON bool   `mapstructure:"enable-rcon"`
 	ServerIP   string `mapstructure:"server-ip"`
@@ -27,46 +27,48 @@ type Config struct {
 	}
 }
 
-// NewConfig reads the vanilla Minecraft server configuration file and
-// returns it unamrshaled into a Config.
-func NewConfig() (*Config, error) {
-	config := &Config{}
-	config.Viper = viper.New()
+func init() {
+	conf = &config{}
+	conf.Viper = viper.New()
 
-	config.SetConfigName("server")
-	config.AddConfigPath(".")
+	conf.SetConfigName("server")
+	conf.AddConfigPath(".")
 
-	config.SetDefault("enable-rcon", EnableRCON)
-	config.SetDefault("server-ip", ServerIP)
-	config.SetDefault("server-port", ServerPort)
-	config.SetDefault("rcon.password", "")
-	config.SetDefault("rcon.port", RCONPort)
+	conf.SetDefault("enable-rcon", EnableRCON)
+	conf.SetDefault("server-ip", ServerIP)
+	conf.SetDefault("server-port", ServerPort)
+	conf.SetDefault("rcon.password", "")
+	conf.SetDefault("rcon.port", RCONPort)
+}
 
-	if err := config.ReadInConfig(); err != nil {
+// LoadConfig loads the server.properties file.
+func LoadConfig() error {
+	if err := conf.ReadInConfig(); err != nil {
 		if _, ok := err.(viper.ConfigFileNotFoundError); !ok {
-			return nil, err
+			return err
 		}
 
-		if werr := config.SafeWriteConfigAs("server.properties"); werr != nil {
-			return nil, werr
+		if werr := conf.SafeWriteConfigAs("server.properties"); werr != nil {
+			return werr
 		}
 	}
 
-	if werr := config.WriteConfig(); werr != nil {
-		return nil, werr
+	if err := conf.WriteConfig(); err != nil {
+		return err
 	}
 
-	if err := config.Unmarshal(config); err != nil {
-		return nil, err
-	}
+	return conf.Unmarshal(conf)
+}
 
-	return config, nil
+// Config returns the current server configuration.
+func Config() *config {
+	return conf
 }
 
 // RCONAddr returns the address and port to which the RCON listener is bound.
-func (config *Config) RCONAddr() string {
-	if config.EnableRCON && config.RCON.Password != "" {
-		return fmt.Sprintf("%s:%d", config.ServerIP, config.RCON.Port)
+func (conf *config) RCONAddr() string {
+	if conf.EnableRCON && conf.RCON.Password != "" {
+		return fmt.Sprintf("%s:%d", conf.ServerIP, conf.RCON.Port)
 	}
 
 	return ""
@@ -74,6 +76,6 @@ func (config *Config) RCONAddr() string {
 
 // ServerAddr returns the address and port to which the Minecraft listener is
 // bound.
-func (config *Config) ServerAddr() string {
-	return fmt.Sprintf("%s:%d", config.ServerIP, config.ServerPort)
+func (conf *config) ServerAddr() string {
+	return fmt.Sprintf("%s:%d", conf.ServerIP, conf.ServerPort)
 }

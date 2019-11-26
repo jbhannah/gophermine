@@ -82,11 +82,9 @@ func start() error {
 		return err
 	}
 
-	config, err := mc.NewConfig()
-	if err != nil {
+	if err := mc.LoadConfig(); err != nil {
 		return err
 	}
-
 	ctx, cancel := context.WithCancel(context.Background())
 
 	sigs := make(chan os.Signal, 1)
@@ -95,7 +93,7 @@ func start() error {
 	signal.Notify(sigs, syscall.SIGINT, syscall.SIGTERM)
 	go handleSigs(cancel, sigs)
 
-	server, err := server.NewServer(ctx, config.ServerAddr(), config.RCONAddr())
+	server, err := server.NewServer(ctx)
 	if err != nil {
 		return err
 	}
