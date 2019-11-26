@@ -28,11 +28,9 @@ const (
 )
 
 var (
-	help       bool
-	rconPort   int
-	serverPort int
-	verbose    bool
-	version    bool
+	help    bool
+	verbose bool
+	version bool
 )
 
 func init() {
@@ -42,10 +40,13 @@ func init() {
 	})
 
 	flag.BoolVarP(&help, "help", "h", false, "show this help message")
-	flag.IntVar(&rconPort, "rcon-port", mc.RCONPort, "port to listen on for RCON connections")
-	flag.IntVarP(&serverPort, "port", "p", mc.ServerPort, "port to listen on for Minecraft client connections")
 	flag.BoolVar(&verbose, "verbose", false, "enable verbose logging")
 	flag.BoolVarP(&version, "version", "v", false, "print the version")
+
+	flag.IntP("port", "p", mc.ServerPort, "port to listen on for Minecraft client connections")
+	if err := mc.Config().BindPFlag("server-port", flag.Lookup("port")); err != nil {
+		log.Fatal(err)
+	}
 
 	flag.Usage = usage
 }
