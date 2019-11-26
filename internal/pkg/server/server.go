@@ -17,9 +17,10 @@ const TickDuration = 50 * time.Millisecond
 // listeners, and communication between them all.
 type Server struct {
 	*runner.Runner
-	mc     *MCServer
-	rcon   *RCONServer
-	ticker *time.Ticker
+	console *Console
+	mc      *MCServer
+	rcon    *RCONServer
+	ticker  *time.Ticker
 }
 
 // NewServer instantiates a new server.
@@ -29,6 +30,7 @@ func NewServer(ctx context.Context) (*Server, error) {
 	}
 
 	server.Runner = runner.NewRunner(ctx, server)
+	server.console, _ = NewConsole(server.Context)
 
 	mcServer, err := NewMCServer(server.Context, mc.Properties().ServerAddr())
 	if err != nil {
@@ -57,6 +59,7 @@ func (server *Server) Name() string {
 
 // Setup starts the server's network listeners.
 func (server *Server) Setup() {
+	go server.console.Start()
 	go server.mc.Start()
 
 	if server.rcon != nil {
@@ -80,21 +83,27 @@ func (server *Server) Cleanup() {
 	server.ticker.Stop()
 
 	wg := &sync.WaitGroup{}
-	wg.Add(1)
+
+	if server.rcon != nil {
+		wg.Add(3)
+
+		go func(wg *sync.WaitGroup) {
+			defer wg.Done()
+			<-server.rcon.Stopped()
+		}(wg)
+	} else {
+		wg.Add(2)
+	}
 
 	go func(wg *sync.WaitGroup) {
 		defer wg.Done()
 		<-server.mc.Stopped()
 	}(wg)
 
-	if server.rcon != nil {
-		wg.Add(1)
-
-		go func(wg *sync.WaitGroup) {
-			defer wg.Done()
-			<-server.rcon.Stopped()
-		}(wg)
-	}
+	go func(wg *sync.WaitGroup) {
+		defer wg.Done()
+		<-server.console.Stopped()
+	}(wg)
 
 	wg.Wait()
 }
