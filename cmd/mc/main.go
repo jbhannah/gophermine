@@ -11,7 +11,6 @@ import (
 
 	"github.com/jbhannah/gophermine/internal/pkg/server"
 	log "github.com/sirupsen/logrus"
-	flag "github.com/spf13/pflag"
 )
 
 const (
@@ -22,8 +21,8 @@ const (
 	// Gophermine is compatible with.
 	MCVersion = "1.14.4"
 
-	// MCProtocolVersion is the Minecraft protocol version number that this release
-	// of Gophermine is compatible with.
+	// MCProtocolVersion is the Minecraft protocol version number that this
+	// release of Gophermine is compatible with.
 	MCProtocolVersion = 498
 )
 
@@ -38,38 +37,10 @@ func init() {
 		FullTimestamp:   true,
 		TimestampFormat: "2006-01-02T15:04:05.000000Z-07:00",
 	})
-
-	flag.BoolVarP(&help, "help", "h", false, "show this help message")
-	flag.BoolVar(&verbose, "verbose", false, "enable verbose logging")
-	flag.BoolVarP(&version, "version", "v", false, "print the version")
-
-	flag.IntP("port", "p", mc.ServerPort, "port to listen on for Minecraft client connections")
-	if err := mc.Properties().BindPFlag("server-port", flag.Lookup("port")); err != nil {
-		log.Fatal(err)
-	}
-
-	flag.Usage = usage
 }
 
 func main() {
-	flag.Parse()
-
-	if help {
-		printVersion()
-		fmt.Fprintln(os.Stderr)
-		flag.Usage()
-		os.Exit(0)
-	}
-
-	if version {
-		printVersion()
-		os.Exit(0)
-	}
-
-	if verbose {
-		log.SetLevel(log.DebugLevel)
-		log.Debug("Enabled verbose logging")
-	}
+	parseFlags()
 
 	if err := start(); err != nil {
 		log.Fatal(err)
@@ -115,13 +86,4 @@ func handleSigs(cancel context.CancelFunc, sigs <-chan os.Signal) {
 	print("\r")
 	log.Warn(fmt.Sprintf("Received %s signal", sig))
 	log.Warn("Stopping Gophermine")
-}
-
-func usage() {
-	fmt.Fprintln(os.Stderr, "Usage of mc:")
-	flag.PrintDefaults()
-}
-
-func printVersion() {
-	fmt.Fprintf(os.Stderr, "Gophermine %s (Java Edition version %s, protocol %d)\n", Version, MCVersion, MCProtocolVersion)
 }
