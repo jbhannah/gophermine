@@ -13,15 +13,19 @@ import (
 type Console struct {
 	*runner.Runner
 	*bufio.Scanner
-	reader     io.Reader
 	ctxStarted chan struct{}
+	input      chan string
+	name       string
+	stream     io.Reader
 }
 
-func NewConsole(ctx context.Context, reader io.Reader) (*Console, error) {
+func NewConsole(ctx context.Context, name string, stream io.Reader) (*Console, error) {
 	console := &Console{
-		Scanner:    bufio.NewScanner(reader),
-		reader:     reader,
+		Scanner:    bufio.NewScanner(stream),
 		ctxStarted: ctx.Value(runner.RunnableStarted).(chan struct{}),
+		input:      make(chan string),
+		name:       name,
+		stream:     stream,
 	}
 
 	console.Runner = runner.NewRunner(ctx, console)
@@ -29,26 +33,37 @@ func NewConsole(ctx context.Context, reader io.Reader) (*Console, error) {
 }
 
 func (console *Console) Name() string {
-	return "Console"
+	return console.name
 }
 
-func (console *Console) Setup() {}
+func (console *Console) Setup() {
+	go console.scan()
+}
 
 func (console *Console) Run() {
 	<-console.ctxStarted
 	log.Debug("Accepting console commands")
-	go console.Scan()
-	<-console.Done()
+
+	for {
+		select {
+		case <-console.Done():
+			return
+		case text := <-console.input:
+			log.Info(text)
+		}
+	}
 }
 
-func (console *Console) Cleanup() {}
-
-func (console *Console) Scan() {
-	for console.Scanner.Scan() {
-		log.Infof("%s", console.Text())
+func (console *Console) scan() {
+	for console.Scan() {
+		console.input <- console.Text()
 	}
 
 	if err := console.Err(); err != nil {
 		log.Errorf("Error reading input from console: %s", err)
 	}
+}
+
+func (console *Console) Cleanup() {
+	defer close(console.input)
 }

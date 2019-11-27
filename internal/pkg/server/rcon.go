@@ -2,9 +2,11 @@ package server
 
 import (
 	"context"
+	"fmt"
 	"io"
 	"net"
 
+	"github.com/jbhannah/gophermine/pkg/console"
 	"github.com/jbhannah/gophermine/pkg/listener"
 	log "github.com/sirupsen/logrus"
 )
@@ -34,7 +36,45 @@ func (rcon *RCONServer) Name() string {
 
 // HandleConn handles incoming RCON connections.
 func (rcon *RCONServer) HandleConn(conn net.Conn) {
-	if _, err := io.Copy(conn, conn); err != nil {
-		log.Errorf("Error in connection: %s", err)
+	console, err := rcon.newConsole(conn)
+	if err != nil {
+		log.Errorf("Could not initialize RCON console for %s: %s", conn.RemoteAddr(), err)
+		conn.Close()
+		return
 	}
+
+	<-console.Start()
+	<-console.Stopped()
+}
+
+type rconConn struct {
+	net.Conn
+	*console.Console
+}
+
+func (rcon *RCONServer) newConsole(conn net.Conn) (*rconConn, error) {
+	rc := &rconConn{
+		Conn: conn,
+	}
+
+	name := fmt.Sprintf("%s RCON console", conn.RemoteAddr().String())
+	con, err := console.NewConsole(rcon.Context, name, rc)
+	if err != nil {
+		return nil, err
+	}
+
+	rc.Console = con
+	return rc, nil
+}
+
+// Read reads incoming data from the connection and stops the console if the
+// connection is closed.
+func (conn *rconConn) Read(p []byte) (int, error) {
+	n, err := conn.Conn.Read(p)
+
+	if err == io.EOF {
+		defer conn.Console.Stop()
+	}
+
+	return n, err
 }

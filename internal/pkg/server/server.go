@@ -31,7 +31,7 @@ func NewServer(ctx context.Context) (*Server, error) {
 	}
 
 	server.Runner = runner.NewRunner(ctx, server)
-	server.console, _ = console.NewConsole(server.Context, os.Stdin)
+	server.console, _ = console.NewConsole(server.Context, "Console", os.Stdin)
 
 	mcServer, err := NewMCServer(server.Context, mc.Properties().ServerAddr())
 	if err != nil {
@@ -67,7 +67,7 @@ func (server *Server) Setup() {
 
 		go func(wg *sync.WaitGroup) {
 			defer wg.Done()
-			server.rcon.Start()
+			<-server.rcon.Start()
 		}(wg)
 	} else {
 		wg.Add(2)
@@ -75,12 +75,12 @@ func (server *Server) Setup() {
 
 	go func(wg *sync.WaitGroup) {
 		defer wg.Done()
-		server.console.Start()
+		<-server.console.Start()
 	}(wg)
 
 	go func(wg *sync.WaitGroup) {
 		defer wg.Done()
-		server.mc.Start()
+		<-server.mc.Start()
 	}(wg)
 
 	wg.Wait()
