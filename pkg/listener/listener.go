@@ -67,14 +67,27 @@ func (listener *Listener) Cleanup() {
 	defer log.Debugf("Stopped listening on %s for %s", listener.Addr(), listener.Name())
 	log.Debugf("Stopping listener for %s", listener.Name())
 
+	listener.wg.Wait()
 	listener.Close()
 	<-listener.stopped
-	listener.wg.Wait()
 }
 
-func (listener *Listener) handle(conn net.Conn) {
-	defer log.Debugf("Closed connection for %s from %s", listener.Name(), conn.RemoteAddr())
-	defer listener.wg.Done()
+func (listener *Listener) handle(conn *net.TCPConn) {
+	closed := make(chan struct{})
+	defer close(closed)
+
+	go func() {
+		defer log.Debugf("Closed connection for %s from %s", listener.Name(), conn.RemoteAddr())
+		defer listener.wg.Done()
+
+		select {
+		case <-listener.Done():
+			if err := conn.CloseRead(); err != nil {
+				log.Warnf("Unable to close connection for %s from %s nicely", listener.Name(), conn.RemoteAddr())
+			}
+		case <-closed:
+		}
+	}()
 
 	listener.wg.Add(1)
 	listener.HandleConn(conn)
@@ -86,13 +99,14 @@ func (listener *Listener) listen() {
 	for {
 		conn, err := listener.Accept()
 		if err != nil {
-			log.Errorf("Error accepting connection for %s: %v", listener.Name(), err)
+			if listener.Err() == nil {
+				log.Errorf("Error accepting connection for %s: %s", listener.Name(), err)
+			}
+
 			return
 		}
 
-		defer conn.Close()
-
 		log.Infof("Accepted connection for %s from %s", listener.Name(), conn.RemoteAddr())
-		go listener.handle(conn)
+		go listener.handle(conn.(*net.TCPConn))
 	}
 }
