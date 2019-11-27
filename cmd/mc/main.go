@@ -7,9 +7,11 @@ import (
 	"os/signal"
 	"syscall"
 
+	"github.com/jbhannah/gophermine/pkg/console"
 	"github.com/jbhannah/gophermine/pkg/mc"
 
 	"github.com/jbhannah/gophermine/internal/pkg/server"
+	"github.com/mattn/go-isatty"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -33,10 +35,18 @@ var (
 )
 
 func init() {
-	log.SetFormatter(&log.TextFormatter{
+	formatter := &log.TextFormatter{
 		FullTimestamp:   true,
 		TimestampFormat: "2006-01-02T15:04:05.000000Z-07:00",
-	})
+	}
+
+	if isatty.IsTerminal(os.Stdin.Fd()) {
+		log.SetFormatter(&console.TermFormatter{
+			TextFormatter: formatter,
+		})
+	} else {
+		log.SetFormatter(formatter)
+	}
 }
 
 func main() {

@@ -3,7 +3,6 @@ package server
 import (
 	"bufio"
 	"context"
-	"fmt"
 	"os"
 
 	"github.com/jbhannah/gophermine/pkg/runner"
@@ -43,7 +42,6 @@ func (console *Console) Cleanup() {
 func (console *Console) Scan() {
 	for console.Scanner.Scan() {
 		log.Infof("%s", console.Text())
-		fmt.Fprint(os.Stderr, "> ")
 	}
 
 	if err := console.Err(); err != nil {
