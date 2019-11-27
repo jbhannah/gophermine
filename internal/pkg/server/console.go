@@ -12,11 +12,13 @@ import (
 type Console struct {
 	*runner.Runner
 	*bufio.Scanner
+	serverStarted chan struct{}
 }
 
 func NewConsole(ctx context.Context) (*Console, error) {
 	console := &Console{
-		Scanner: bufio.NewScanner(os.Stdin),
+		Scanner:       bufio.NewScanner(os.Stdin),
+		serverStarted: ctx.Value(runner.RunnableStarted).(chan struct{}),
 	}
 
 	console.Runner = runner.NewRunner(ctx, console)
@@ -27,11 +29,12 @@ func (console *Console) Name() string {
 	return "Console"
 }
 
-func (console *Console) Setup() {
-	go console.Scan()
-}
+func (console *Console) Setup() {}
 
 func (console *Console) Run() {
+	<-console.serverStarted
+	log.Debug("Accepting console commands")
+	go console.Scan()
 	<-console.Done()
 }
 

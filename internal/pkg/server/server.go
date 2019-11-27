@@ -59,12 +59,30 @@ func (server *Server) Name() string {
 
 // Setup starts the server's network listeners.
 func (server *Server) Setup() {
-	go server.console.Start()
-	go server.mc.Start()
+	wg := &sync.WaitGroup{}
 
 	if server.rcon != nil {
-		go server.rcon.Start()
+		wg.Add(3)
+
+		go func(wg *sync.WaitGroup) {
+			defer wg.Done()
+			server.rcon.Start()
+		}(wg)
+	} else {
+		wg.Add(2)
 	}
+
+	go func(wg *sync.WaitGroup) {
+		defer wg.Done()
+		server.console.Start()
+	}(wg)
+
+	go func(wg *sync.WaitGroup) {
+		defer wg.Done()
+		server.mc.Start()
+	}(wg)
+
+	wg.Wait()
 }
 
 // Run handles incoming commands to the server.
