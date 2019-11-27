@@ -80,7 +80,7 @@ func start() error {
 		return err
 	}
 
-	server.Start()
+	<-server.Start()
 	log.Info("Started Gophermine")
 
 	<-server.Stopped()
