@@ -1,24 +1,27 @@
-package server
+package console
 
 import (
 	"bufio"
 	"context"
-	"os"
+	"io"
 
 	"github.com/jbhannah/gophermine/pkg/runner"
+
 	log "github.com/sirupsen/logrus"
 )
 
 type Console struct {
 	*runner.Runner
 	*bufio.Scanner
-	serverStarted chan struct{}
+	reader     io.Reader
+	ctxStarted chan struct{}
 }
 
-func NewConsole(ctx context.Context) (*Console, error) {
+func NewConsole(ctx context.Context, reader io.Reader) (*Console, error) {
 	console := &Console{
-		Scanner:       bufio.NewScanner(os.Stdin),
-		serverStarted: ctx.Value(runner.RunnableStarted).(chan struct{}),
+		Scanner:    bufio.NewScanner(reader),
+		reader:     reader,
+		ctxStarted: ctx.Value(runner.RunnableStarted).(chan struct{}),
 	}
 
 	console.Runner = runner.NewRunner(ctx, console)
@@ -32,15 +35,13 @@ func (console *Console) Name() string {
 func (console *Console) Setup() {}
 
 func (console *Console) Run() {
-	<-console.serverStarted
+	<-console.ctxStarted
 	log.Debug("Accepting console commands")
 	go console.Scan()
 	<-console.Done()
 }
 
-func (console *Console) Cleanup() {
-	os.Stdin.Close()
-}
+func (console *Console) Cleanup() {}
 
 func (console *Console) Scan() {
 	for console.Scanner.Scan() {

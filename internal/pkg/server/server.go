@@ -2,11 +2,12 @@ package server
 
 import (
 	"context"
+	"os"
 	"sync"
 	"time"
 
+	"github.com/jbhannah/gophermine/pkg/console"
 	"github.com/jbhannah/gophermine/pkg/mc"
-
 	"github.com/jbhannah/gophermine/pkg/runner"
 )
 
@@ -17,7 +18,7 @@ const TickDuration = 50 * time.Millisecond
 // listeners, and communication between them all.
 type Server struct {
 	*runner.Runner
-	console *Console
+	console *console.Console
 	mc      *MCServer
 	rcon    *RCONServer
 	ticker  *time.Ticker
@@ -30,7 +31,7 @@ func NewServer(ctx context.Context) (*Server, error) {
 	}
 
 	server.Runner = runner.NewRunner(ctx, server)
-	server.console, _ = NewConsole(server.Context)
+	server.console, _ = console.NewConsole(server.Context, os.Stdin)
 
 	mcServer, err := NewMCServer(server.Context, mc.Properties().ServerAddr())
 	if err != nil {
