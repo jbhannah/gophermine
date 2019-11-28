@@ -2,6 +2,7 @@ package runner
 
 import (
 	"context"
+	"time"
 
 	log "github.com/sirupsen/logrus"
 )
@@ -44,10 +45,15 @@ func NewRunner(ctx context.Context, runnable Runnable) *Runner {
 // Start runs the setup steps for the Runnable and starts the looping goroutine,
 // and returns a channel that closes when the runner has started.
 func (runner *Runner) Start() <-chan struct{} {
-	defer log.Debugf("Started loop for %s", runner.Name())
-
 	log.Debugf("Starting loop for %s", runner.Name())
+	startTime := time.Now()
+
 	runner.Setup()
+
+	go func() {
+		<-runner.started
+		log.Debugf("Started loop for %s in %s", runner.Name(), time.Since(startTime))
+	}()
 
 	go runner.run()
 	return runner.started
@@ -78,7 +84,6 @@ func (runner *Runner) Stopped() <-chan struct{} {
 
 func (runner *Runner) run() {
 	defer runner.cleanup()
-	defer log.Debugf("Stopping loop for %s", runner.Name())
 
 	close(runner.started)
 	runner.Run()
@@ -86,7 +91,10 @@ func (runner *Runner) run() {
 
 func (runner *Runner) cleanup() {
 	defer close(runner.stopped)
-	defer log.Debugf("Stopped loop for %s", runner.Name())
+
+	log.Debugf("Stopping loop for %s", runner.Name())
+	stopTime := time.Now()
 
 	runner.Cleanup()
+	log.Debugf("Stopped loop for %s in %s", runner.Name(), time.Since(stopTime))
 }

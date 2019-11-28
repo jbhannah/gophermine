@@ -6,6 +6,7 @@ import (
 	"os"
 	"os/signal"
 	"syscall"
+	"time"
 
 	"github.com/jbhannah/gophermine/pkg/console"
 	"github.com/jbhannah/gophermine/pkg/mc"
@@ -59,6 +60,7 @@ func main() {
 
 func start() error {
 	log.Info("Starting Gophermine")
+	startTime := time.Now()
 
 	if err := mc.CheckEULA(); err != nil {
 		return err
@@ -81,10 +83,10 @@ func start() error {
 	}
 
 	<-server.Start()
-	log.Info("Started Gophermine")
+	log.Infof("Started Gophermine in %s", time.Since(startTime))
 
 	<-server.Stopped()
-	log.Info("Stopped Gophermine")
+	log.Infof("Stopped Gophermine after %s", time.Since(startTime))
 
 	return nil
 }
