@@ -2,6 +2,7 @@ package mc
 
 import (
 	"fmt"
+	"io"
 	"strings"
 
 	"github.com/jbhannah/gophermine/pkg/runner"
@@ -30,6 +31,7 @@ func (cmd CommandType) String() string {
 }
 
 type CommandOrigin interface {
+	io.Writer
 	Name() string
 }
 

@@ -2,6 +2,7 @@ package server
 
 import (
 	"context"
+	"fmt"
 	"os"
 	"sync"
 	"time"
@@ -41,7 +42,7 @@ func NewServer(ctx context.Context) (*Server, error) {
 	server.Runner = runner.NewRunner(ctx, server)
 
 	if isatty.IsTerminal(os.Stdin.Fd()) {
-		cons, err := console.NewConsole(server.Context, "Console", os.Stdin)
+		cons, err := console.NewConsole(server.Context, "Console", os.Stdin, log.StandardLogger().WriterLevel(log.DebugLevel))
 		if err != nil {
 			return nil, err
 		}
@@ -152,7 +153,11 @@ func (server *Server) Cleanup() {
 }
 
 func (server *Server) handleCommand(cmd *mc.Command) {
-	log.Debugf("Command received: %s", cmd)
+	if bytes, err := cmd.Origin.Write([]byte(fmt.Sprintf("Command received: %s\n", cmd))); err != nil {
+		log.Warnf("Error sending response to command: %s", err)
+	} else {
+		log.Debugf("Wrote %d bytes in response to command", bytes)
+	}
 
 	switch cmd.CommandType {
 	case mc.StopCommand:

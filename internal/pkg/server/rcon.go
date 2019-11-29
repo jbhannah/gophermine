@@ -58,7 +58,9 @@ func (rcon *RCONServer) newConsole(conn net.Conn) (*rconConn, error) {
 	}
 
 	name := fmt.Sprintf("%s RCON console", conn.RemoteAddr().String())
-	con, err := console.NewConsole(rcon.Context, name, rc)
+	writer := io.MultiWriter(rc, log.StandardLogger().WriterLevel(log.DebugLevel))
+
+	con, err := console.NewConsole(rcon.Context, name, rc, writer)
 	if err != nil {
 		return nil, err
 	}

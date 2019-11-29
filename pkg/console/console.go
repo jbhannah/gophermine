@@ -13,23 +13,25 @@ import (
 )
 
 type Console struct {
+	io.Reader
+	io.Writer
 	*runner.Runner
 	*bufio.Scanner
 	commands   chan *mc.Command
 	ctxStarted chan struct{}
 	lines      chan string
 	name       string
-	input      io.Reader
 }
 
-func NewConsole(ctx context.Context, name string, input io.Reader) (*Console, error) {
+func NewConsole(ctx context.Context, name string, reader io.Reader, writer io.Writer) (*Console, error) {
 	console := &Console{
-		Scanner:    bufio.NewScanner(input),
+		Reader:     reader,
+		Writer:     writer,
+		Scanner:    bufio.NewScanner(reader),
 		commands:   ctx.Value(mc.ServerCommands).(chan *mc.Command),
 		ctxStarted: ctx.Value(runner.RunnableStarted).(chan struct{}),
 		lines:      make(chan string),
 		name:       name,
-		input:      input,
 	}
 
 	console.Runner = runner.NewRunner(ctx, console)
