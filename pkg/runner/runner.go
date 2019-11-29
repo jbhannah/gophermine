@@ -7,9 +7,12 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-type RunnableContextKey string
+type ContextKey string
 
-const RunnableStarted = RunnableContextKey("started")
+const (
+	UnknownKey      ContextKey = "unknown"
+	RunnableStarted ContextKey = "started"
+)
 
 // Runnable defines the interface for a controllable looping Goroutine.
 type Runnable interface {

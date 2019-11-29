@@ -9,7 +9,9 @@ import (
 	"github.com/jbhannah/gophermine/pkg/console"
 	"github.com/jbhannah/gophermine/pkg/mc"
 	"github.com/jbhannah/gophermine/pkg/runner"
+
 	"github.com/mattn/go-isatty"
+	log "github.com/sirupsen/logrus"
 )
 
 // TickDuration is the length of a single world tick (50ms).
@@ -19,18 +21,23 @@ const TickDuration = 50 * time.Millisecond
 // listeners, and communication between them all.
 type Server struct {
 	*runner.Runner
-	console *console.Console
-	mc      *MCServer
-	rcon    *RCONServer
-	ticker  *time.Ticker
+	commands <-chan *mc.Command
+	console  *console.Console
+	mc       *MCServer
+	rcon     *RCONServer
+	ticker   *time.Ticker
 }
 
 // NewServer instantiates a new server.
 func NewServer(ctx context.Context) (*Server, error) {
+	cmds := make(chan *mc.Command)
+
 	server := &Server{
-		ticker: time.NewTicker(TickDuration),
+		commands: cmds,
+		ticker:   time.NewTicker(TickDuration),
 	}
 
+	ctx = context.WithValue(ctx, mc.ServerCommands, cmds)
 	server.Runner = runner.NewRunner(ctx, server)
 
 	if isatty.IsTerminal(os.Stdin.Fd()) {
@@ -104,6 +111,8 @@ func (server *Server) Run() {
 		select {
 		case <-server.Done():
 			return
+		case cmd := <-server.commands:
+			go server.handleCommand(cmd)
 		case <-server.ticker.C:
 		}
 	}
@@ -140,4 +149,13 @@ func (server *Server) Cleanup() {
 	}(wg)
 
 	wg.Wait()
+}
+
+func (server *Server) handleCommand(cmd *mc.Command) {
+	log.Debugf("Command received: %s", cmd)
+
+	switch cmd.CommandType {
+	case mc.StopCommand:
+		server.Stop()
+	}
 }

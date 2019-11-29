@@ -4,7 +4,9 @@ import (
 	"bufio"
 	"context"
 	"io"
+	"strings"
 
+	"github.com/jbhannah/gophermine/pkg/mc"
 	"github.com/jbhannah/gophermine/pkg/runner"
 
 	log "github.com/sirupsen/logrus"
@@ -13,19 +15,21 @@ import (
 type Console struct {
 	*runner.Runner
 	*bufio.Scanner
+	commands   chan *mc.Command
 	ctxStarted chan struct{}
-	input      chan string
+	lines      chan string
 	name       string
-	stream     io.Reader
+	input      io.Reader
 }
 
-func NewConsole(ctx context.Context, name string, stream io.Reader) (*Console, error) {
+func NewConsole(ctx context.Context, name string, input io.Reader) (*Console, error) {
 	console := &Console{
-		Scanner:    bufio.NewScanner(stream),
+		Scanner:    bufio.NewScanner(input),
+		commands:   ctx.Value(mc.ServerCommands).(chan *mc.Command),
 		ctxStarted: ctx.Value(runner.RunnableStarted).(chan struct{}),
-		input:      make(chan string),
+		lines:      make(chan string),
 		name:       name,
-		stream:     stream,
+		input:      input,
 	}
 
 	console.Runner = runner.NewRunner(ctx, console)
@@ -48,22 +52,22 @@ func (console *Console) Run() {
 		select {
 		case <-console.Done():
 			return
-		case text := <-console.input:
-			log.Info(text)
+		case text := <-console.lines:
+			console.commands <- mc.NewCommand(console, strings.Split(text, " ")...)
 		}
 	}
 }
 
+func (console *Console) Cleanup() {
+	defer close(console.lines)
+}
+
 func (console *Console) scan() {
 	for console.Scan() {
-		console.input <- console.Text()
+		console.lines <- console.Text()
 	}
 
 	if err := console.Err(); err != nil {
 		log.Errorf("Error reading input from console: %s", err)
 	}
-}
-
-func (console *Console) Cleanup() {
-	defer close(console.input)
 }
