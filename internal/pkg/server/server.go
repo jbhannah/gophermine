@@ -9,6 +9,7 @@ import (
 	"github.com/jbhannah/gophermine/pkg/console"
 	"github.com/jbhannah/gophermine/pkg/mc"
 	"github.com/jbhannah/gophermine/pkg/runner"
+	"github.com/mattn/go-isatty"
 )
 
 // TickDuration is the length of a single world tick (50ms).
@@ -31,7 +32,15 @@ func NewServer(ctx context.Context) (*Server, error) {
 	}
 
 	server.Runner = runner.NewRunner(ctx, server)
-	server.console, _ = console.NewConsole(server.Context, "Console", os.Stdin)
+
+	if isatty.IsTerminal(os.Stdin.Fd()) {
+		cons, err := console.NewConsole(server.Context, "Console", os.Stdin)
+		if err != nil {
+			return nil, err
+		}
+
+		server.console = cons
+	}
 
 	mcServer, err := NewMCServer(server.Context, mc.Properties().ServerAddr())
 	if err != nil {
@@ -61,22 +70,25 @@ func (server *Server) Name() string {
 // Setup starts the server's network listeners.
 func (server *Server) Setup() {
 	wg := &sync.WaitGroup{}
+	wg.Add(1)
 
 	if server.rcon != nil {
-		wg.Add(3)
+		wg.Add(1)
 
 		go func(wg *sync.WaitGroup) {
 			defer wg.Done()
 			<-server.rcon.Start()
 		}(wg)
-	} else {
-		wg.Add(2)
 	}
 
-	go func(wg *sync.WaitGroup) {
-		defer wg.Done()
-		<-server.console.Start()
-	}(wg)
+	if server.console != nil {
+		wg.Add(1)
+
+		go func(wg *sync.WaitGroup) {
+			defer wg.Done()
+			<-server.console.Start()
+		}(wg)
+	}
 
 	go func(wg *sync.WaitGroup) {
 		defer wg.Done()
@@ -102,26 +114,29 @@ func (server *Server) Cleanup() {
 	server.ticker.Stop()
 
 	wg := &sync.WaitGroup{}
+	wg.Add(1)
 
 	if server.rcon != nil {
-		wg.Add(3)
+		wg.Add(1)
 
 		go func(wg *sync.WaitGroup) {
 			defer wg.Done()
 			<-server.rcon.Stopped()
 		}(wg)
-	} else {
-		wg.Add(2)
+	}
+
+	if server.console != nil {
+		wg.Add(1)
+
+		go func(wg *sync.WaitGroup) {
+			defer wg.Done()
+			<-server.console.Stopped()
+		}(wg)
 	}
 
 	go func(wg *sync.WaitGroup) {
 		defer wg.Done()
 		<-server.mc.Stopped()
-	}(wg)
-
-	go func(wg *sync.WaitGroup) {
-		defer wg.Done()
-		<-server.console.Stopped()
 	}(wg)
 
 	wg.Wait()
