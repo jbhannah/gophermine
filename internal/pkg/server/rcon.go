@@ -8,6 +8,7 @@ import (
 
 	"github.com/jbhannah/gophermine/pkg/console"
 	"github.com/jbhannah/gophermine/pkg/listener"
+	"github.com/jbhannah/gophermine/pkg/mc"
 
 	log "github.com/sirupsen/logrus"
 )
@@ -40,6 +41,21 @@ func (rcon *RCONServer) HandleConn(conn net.Conn) {
 	console, err := rcon.newConsole(conn)
 	if err != nil {
 		log.Errorf("Could not initialize RCON console for %s: %s", conn.RemoteAddr(), err)
+		conn.Close()
+		return
+	}
+
+	if _, err := conn.Write([]byte("Password: ")); err != nil {
+		log.Warnf("Error prompting for RCON password from %s: %s", conn.RemoteAddr(), err)
+	}
+
+	if !console.Scan() || console.Text() != mc.Properties().RCON.Password {
+		if _, err := conn.Write([]byte("Incorrect password!\n")); err != nil {
+			log.Warnf("Error warning %s about incorrect RCON password: %s", conn.RemoteAddr(), err)
+		}
+
+		log.Warnf("Failed RCON authentication attempt from %s", conn.RemoteAddr())
+
 		conn.Close()
 		return
 	}

@@ -42,29 +42,28 @@ func NewServer(ctx context.Context) (*Server, error) {
 	server.Runner = runner.NewRunner(ctx, server)
 
 	if isatty.IsTerminal(os.Stdin.Fd()) {
-		cons, err := console.NewConsole(server.Context, "Console", os.Stdin, log.StandardLogger().WriterLevel(log.DebugLevel))
-		if err != nil {
+		if cons, err := console.NewConsole(server.Context, "Console", os.Stdin, log.StandardLogger().WriterLevel(log.DebugLevel)); err != nil {
 			return nil, err
+		} else {
+			server.console = cons
 		}
-
-		server.console = cons
 	}
 
-	mcServer, err := NewMCServer(server.Context, mc.Properties().ServerAddr())
-	if err != nil {
+	if mcServer, err := NewMCServer(server.Context, mc.Properties().ServerAddr()); err != nil {
 		return nil, err
+	} else {
+		server.mc = mcServer
 	}
-
-	server.mc = mcServer
 
 	rconAddr := mc.Properties().RCONAddr()
-	if rconAddr != "" {
-		rcon, err := NewRCONServer(server.Context, rconAddr)
-		if err != nil {
-			return nil, err
-		}
+	rconPass := mc.Properties().RCON.Password
 
-		server.rcon = rcon
+	if rconAddr != "" && rconPass != "" {
+		if rcon, err := NewRCONServer(server.Context, rconAddr); err != nil {
+			return nil, err
+		} else {
+			server.rcon = rcon
+		}
 	}
 
 	return server, nil
