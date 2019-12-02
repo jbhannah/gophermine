@@ -12,6 +12,10 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
+// Console is a command entry console for a running server. If the server is
+// started with an attached TTY, one is instantiated to accept directly entered
+// commands. If RCON is enabled for the server, one is instantiated for each
+// incoming connection.
 type Console struct {
 	io.Reader
 	io.Writer
@@ -19,10 +23,10 @@ type Console struct {
 	*bufio.Scanner
 	commands   chan *mc.Command
 	ctxStarted chan struct{}
-	lines      chan string
 	name       string
 }
 
+// NewConsole creates a new console.
 func NewConsole(ctx context.Context, name string, reader io.Reader, writer io.Writer) (*Console, error) {
 	console := &Console{
 		Reader:     reader,
@@ -30,7 +34,6 @@ func NewConsole(ctx context.Context, name string, reader io.Reader, writer io.Wr
 		Scanner:    bufio.NewScanner(reader),
 		commands:   ctx.Value(mc.ServerCommands).(chan *mc.Command),
 		ctxStarted: ctx.Value(runner.RunnableStarted).(chan struct{}),
-		lines:      make(chan string),
 		name:       name,
 	}
 
@@ -38,35 +41,30 @@ func NewConsole(ctx context.Context, name string, reader io.Reader, writer io.Wr
 	return console, nil
 }
 
+// Name returns the name of the console.
 func (console *Console) Name() string {
 	return console.name
 }
 
+// Setup begins the input scanner loop for the console.
 func (console *Console) Setup() {
 	go console.scan()
 }
 
+// Run waits until the surrounding context has started, then blocks until the
+// console is stopped.
 func (console *Console) Run() {
 	<-console.ctxStarted
-	log.Debug("Accepting console commands")
+	log.Debugf("Accepting console commands from %s", console.Name())
 
-	for {
-		select {
-		case <-console.Done():
-			return
-		case text := <-console.lines:
-			console.commands <- mc.NewCommand(console, strings.Split(text, " ")...)
-		}
-	}
+	<-console.Done()
 }
 
-func (console *Console) Cleanup() {
-	defer close(console.lines)
-}
+func (console *Console) Cleanup() {}
 
 func (console *Console) scan() {
 	for console.Scan() {
-		console.lines <- console.Text()
+		console.commands <- mc.NewCommand(console, strings.Split(console.Text(), " ")...)
 	}
 
 	if err := console.Err(); err != nil {

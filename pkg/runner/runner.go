@@ -74,7 +74,7 @@ func (runner *Runner) Started() <-chan struct{} {
 func (runner *Runner) Stop() <-chan struct{} {
 	defer runner.cancel()
 
-	log.Debugf("Stop requested for %s", runner.Name())
+	log.Infof("Stop requested for %s", runner.Name())
 	return runner.stopped
 }
 

@@ -8,6 +8,7 @@ import (
 
 	"github.com/jbhannah/gophermine/pkg/console"
 	"github.com/jbhannah/gophermine/pkg/listener"
+
 	log "github.com/sirupsen/logrus"
 )
 
