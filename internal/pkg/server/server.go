@@ -7,6 +7,8 @@ import (
 	"sync"
 	"time"
 
+	"github.com/jbhannah/gophermine/internal/pkg/utils"
+
 	"github.com/jbhannah/gophermine/pkg/console"
 	"github.com/jbhannah/gophermine/pkg/mc"
 	"github.com/jbhannah/gophermine/pkg/runner"
@@ -42,7 +44,11 @@ func NewServer(ctx context.Context) (*Server, error) {
 	server.Runner = runner.NewRunner(ctx, server)
 
 	if isatty.IsTerminal(os.Stdin.Fd()) {
-		if cons, err := console.NewConsole(server.Context, "Console", os.Stdin, log.StandardLogger().WriterLevel(log.DebugLevel)); err != nil {
+		writer := &utils.LineWriter{
+			Writer: log.StandardLogger().WriterLevel(log.InfoLevel),
+		}
+
+		if cons, err := console.NewConsole(server.Context, "Console", os.Stdin, writer); err != nil {
 			return nil, err
 		} else {
 			server.console = cons
