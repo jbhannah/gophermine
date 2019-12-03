@@ -152,10 +152,8 @@ func (server *Server) Cleanup() {
 }
 
 func (server *Server) handleCommand(cmd *mc.Command) {
-	if bytes, err := cmd.Origin.Write([]byte(fmt.Sprintf("Command received: %s\n", cmd))); err != nil {
-		log.Warnf("Error sending response to command: %s", err)
-	} else {
-		log.Debugf("Wrote %d bytes in response to command", bytes)
+	if _, err := cmd.Write([]byte(fmt.Sprintf("Command received: %s", cmd))); err != nil {
+		log.Errorf("Error responding to command %s: %s", cmd, err)
 	}
 
 	switch cmd.CommandType {

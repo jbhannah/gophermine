@@ -17,11 +17,10 @@ import (
 // commands. If RCON is enabled for the server, one is instantiated for each
 // incoming connection.
 type Console struct {
-	io.Reader
 	io.Writer
 	*runner.Runner
 	*bufio.Scanner
-	commands   chan *mc.Command
+	Commands   chan *mc.Command
 	ctxStarted chan struct{}
 	name       string
 }
@@ -29,10 +28,9 @@ type Console struct {
 // NewConsole creates a new console.
 func NewConsole(ctx context.Context, name string, reader io.Reader, writer io.Writer) (*Console, error) {
 	console := &Console{
-		Reader:     reader,
 		Writer:     writer,
 		Scanner:    bufio.NewScanner(reader),
-		commands:   ctx.Value(mc.ServerCommands).(chan *mc.Command),
+		Commands:   ctx.Value(mc.ServerCommands).(chan *mc.Command),
 		ctxStarted: ctx.Value(runner.RunnableStarted).(chan struct{}),
 		name:       name,
 	}
@@ -55,7 +53,7 @@ func (console *Console) Setup() {
 // console is stopped.
 func (console *Console) Run() {
 	<-console.ctxStarted
-	log.Debugf("Accepting console commands from %s", console.Name())
+	log.Infof("Accepting console commands from %s", console.Name())
 
 	<-console.Done()
 }
@@ -64,7 +62,7 @@ func (console *Console) Cleanup() {}
 
 func (console *Console) scan() {
 	for console.Scan() {
-		console.commands <- mc.NewCommand(console, strings.Split(console.Text(), " ")...)
+		console.Commands <- mc.NewCommand(console, strings.Split(console.Text(), " ")...)
 	}
 
 	if err := console.Err(); err != nil {

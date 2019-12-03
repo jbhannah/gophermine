@@ -38,8 +38,8 @@ func (cmd CommandType) String() string {
 	return ""
 }
 
-// CommandOrigin is the input (e.g. RCON, stdin) that sent a given command.
-type CommandOrigin interface {
+// Origin is the input (e.g. RCON, stdin) that sent a given command.
+type Origin interface {
 	io.Writer
 	Name() string
 }
@@ -47,16 +47,16 @@ type CommandOrigin interface {
 // Command represents a command sent to the server.
 type Command struct {
 	CommandType
-	Args   []string
-	Origin CommandOrigin
+	Origin
+	Args []string
 }
 
 // NewCommand instantiates a Command from the origin and input string.
-func NewCommand(origin CommandOrigin, args ...string) *Command {
+func NewCommand(origin Origin, args ...string) *Command {
 	return &Command{
 		CommandType: stringToCommandType(args[0]),
-		Args:        args[1:],
 		Origin:      origin,
+		Args:        args[1:],
 	}
 }
 
